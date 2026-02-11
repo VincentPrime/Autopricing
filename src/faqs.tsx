@@ -8,24 +8,11 @@ import { MessageCircleQuestionMark } from "lucide-react"
 import {    
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogTrigger,
 } from "./components/ui/dialog"
-import { useState,useEffect } from "react";
 
 export default function Faqs(){
     
-    const [isDarkMode, setIsDarkMode] = useState(true);
-
-  useEffect(() => {
-    localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
 
 return(
         <>
