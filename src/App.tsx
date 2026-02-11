@@ -1,44 +1,36 @@
 import { useState, useEffect } from 'react';
 import { Calculator, History, Trash2, Download, TrendingUp, Moon, Sun, ArrowLeft } from 'lucide-react';
 import jsPDF from 'jspdf';
+import Faqs from './faqs';
 
 interface Calculation {
   productName: string;
-  materialCost: number;
-  laborCost: number;
-  overheadExpenses: number;
-  profitPercentage: number;
-  discountPercentage: number;
-  taxPercentage: number;
-  baseCost: number;
-  profitAmount: number;
-  withProfit: number;
-  discountAmount: number;
-  afterDiscount: number;
-  taxAmount: number;
-  totalPrice: number;
+  fixedCosts: number;
+  variableCostPerUnit: number;
+  unitsProduced: number;
+  markupPercentage: number;
+  fixedCostPerUnit: number;
+  costPerUnit: number;
+  sellingPrice: number;
+  profitPerUnit: number;
   timestamp: string;
 }
 
 interface FormData {
   productName: string;
-  materialCost: string;
-  laborCost: string;
-  overheadExpenses: string;
-  profitPercentage: string;
-  discountPercentage: string;
-  taxPercentage: string;
+  fixedCosts: string;
+  variableCostPerUnit: string;
+  unitsProduced: string;
+  markupPercentage: string;
 }
 
 function App() {
   const [formData, setFormData] = useState<FormData>({
     productName: '',
-    materialCost: '',
-    laborCost: '',
-    overheadExpenses: '',
-    profitPercentage: '',
-    discountPercentage: '',
-    taxPercentage: '',
+    fixedCosts: '',
+    variableCostPerUnit: '',
+    unitsProduced: '',
+    markupPercentage: '',
   });
 
   const [currentCalculation, setCurrentCalculation] = useState<Calculation | null>(null);
@@ -85,36 +77,33 @@ function App() {
   };
 
   const calculatePrice = () => {
-    const materialCost = parseFloat(formData.materialCost) || 0;
-    const laborCost = parseFloat(formData.laborCost) || 0;
-    const overheadExpenses = parseFloat(formData.overheadExpenses) || 0;
-    const profitPercentage = parseFloat(formData.profitPercentage) || 0;
-    const discountPercentage = parseFloat(formData.discountPercentage) || 0;
-    const taxPercentage = parseFloat(formData.taxPercentage) || 0;
+    const fixedCosts = parseFloat(formData.fixedCosts) || 0;
+    const variableCostPerUnit = parseFloat(formData.variableCostPerUnit) || 0;
+    const unitsProduced = parseFloat(formData.unitsProduced) || 0;
+    const markupPercentage = parseFloat(formData.markupPercentage) || 0;
 
-    const baseCost = materialCost + laborCost + overheadExpenses;
-    const profitAmount = baseCost * (profitPercentage / 100);
-    const withProfit = baseCost + profitAmount;
-    const discountAmount = withProfit * (discountPercentage / 100);
-    const afterDiscount = withProfit - discountAmount;
-    const taxAmount = afterDiscount * (taxPercentage / 100);
-    const totalPrice = afterDiscount + taxAmount;
+    // Step 4: Fixed Cost Per Unit = Total Fixed Costs / Units Produced
+    const fixedCostPerUnit = unitsProduced > 0 ? fixedCosts / unitsProduced : 0;
+
+    // Step 5: Cost Per Unit = Fixed Cost Per Unit + Variable Cost Per Unit
+    const costPerUnit = fixedCostPerUnit + variableCostPerUnit;
+
+    // Step 7: Selling Price = Cost Per Unit + (Cost Per Unit × Markup)
+    const sellingPrice = costPerUnit + (costPerUnit * (markupPercentage / 100));
+
+    // Profit Per Unit = Selling Price - Cost Per Unit
+    const profitPerUnit = sellingPrice - costPerUnit;
 
     const calculation: Calculation = {
       productName: formData.productName,
-      materialCost,
-      laborCost,
-      overheadExpenses,
-      profitPercentage,
-      discountPercentage,
-      taxPercentage,
-      baseCost,
-      profitAmount,
-      withProfit,
-      discountAmount,
-      afterDiscount,
-      taxAmount,
-      totalPrice,
+      fixedCosts,
+      variableCostPerUnit,
+      unitsProduced,
+      markupPercentage,
+      fixedCostPerUnit: Math.round(fixedCostPerUnit),
+      costPerUnit: Math.round(costPerUnit),
+      sellingPrice: Math.round(sellingPrice),
+      profitPerUnit: Math.round(profitPerUnit),
       timestamp: new Date().toISOString(),
     };
 
@@ -150,31 +139,24 @@ function App() {
       if (bold) doc.setFont('', 'bold');
       else doc.setFont('', 'normal');
       doc.text(label, 25, y);
-      doc.text('$' + value.toFixed(2), 160, y, { align: 'right' });
+      doc.text('₱' + value.toFixed(2), 160, y, { align: 'right' });
       y += 8;
     };
 
-    addLine('Material Cost:', calc.materialCost);
-    addLine('Labor Cost:', calc.laborCost);
-    addLine('Overhead Expenses:', calc.overheadExpenses);
+    addLine('Total Fixed Costs:', calc.fixedCosts);
+    addLine('Units Produced:', calc.unitsProduced);
+    addLine('Fixed Cost Per Unit:', calc.fixedCostPerUnit);
+    addLine('Variable Cost Per Unit:', calc.variableCostPerUnit);
 
     y += 2;
     doc.setDrawColor(200, 200, 200);
     doc.line(25, y, 160, y);
     y += 8;
 
-    addLine('Base Cost:', calc.baseCost, true);
+    addLine('Cost Per Unit:', calc.costPerUnit, true);
 
     y += 4;
-    addLine('Profit (' + calc.profitPercentage + '%):', calc.profitAmount);
-    addLine('Price with Profit:', calc.withProfit, true);
-
-    y += 4;
-    addLine('Discount (' + calc.discountPercentage + '%):', -calc.discountAmount);
-    addLine('Price after Discount:', calc.afterDiscount, true);
-
-    y += 4;
-    addLine('Tax (' + calc.taxPercentage + '%):', calc.taxAmount);
+    addLine('Markup (' + calc.markupPercentage + '%):', calc.profitPerUnit);
 
     y += 4;
     doc.setDrawColor(16, 185, 129);
@@ -184,8 +166,13 @@ function App() {
     doc.setFontSize(14);
     doc.setFont('', 'bold');
     doc.setTextColor(16, 185, 129);
-    doc.text('TOTAL PRICE:', 25, y);
-    doc.text('$' + calc.totalPrice.toFixed(2), 160, y, { align: 'right' });
+    doc.text('SELLING PRICE:', 25, y);
+    doc.text('₱' + calc.sellingPrice.toFixed(2), 160, y, { align: 'right' });
+
+    y += 10;
+    doc.setTextColor(0, 0, 0);
+    doc.text('PROFIT PER UNIT:', 25, y);
+    doc.text('₱' + calc.profitPerUnit.toFixed(2), 160, y, { align: 'right' });
 
     const fileName = calc.productName.replace(/[^a-z0-9]/gi, '_') + '_pricing.pdf';
     doc.save(fileName);
@@ -202,12 +189,10 @@ function App() {
 
     setFormData({
       productName: '',
-      materialCost: '',
-      laborCost: '',
-      overheadExpenses: '',
-      profitPercentage: '',
-      discountPercentage: '',
-      taxPercentage: '',
+      fixedCosts: '',
+      variableCostPerUnit: '',
+      unitsProduced: '',
+      markupPercentage: '',
     });
     setShowResults(false);
     setCurrentCalculation(null);
@@ -244,6 +229,8 @@ function App() {
           isDarkMode ? 'bg-primary/10' : 'bg-primary/5'
         } rounded-full mix-blend-multiply filter blur-3xl animate-pulse delay-1000`}></div>
       </div>
+    
+        <Faqs/>
 
       {/* Theme Toggle Button */}
       <button
@@ -302,17 +289,17 @@ function App() {
               >
                 <History className={`w-5 h-5 ${isDarkMode? 'text-white' : 'text-black'}`} />
                 {history.length > 0 && (
-                  <span className={`${isDarkMode ? 'text-white' : 'text-black'} text-xs font-bold bg-primary rounded-full w-5 h-5 flex items-center justify-center`}>
+                  <span className={`${isDarkMode ? 'text-white' : 'text-black'} text-xs font-bold  rounded-full w-5 h-5 flex items-center justify-center`}>
                     {history.length}
                   </span>
                 )}
               </button>
 
-              <div className={`flex items-center  justify-self-center gap-3 mb-8 pb-6 border-b ${
+              <div className={`flex items-center justify-self-center gap-3 mb-8 pb-6 border-b ${
                 isDarkMode ? 'border-[#b7b7b7]' : 'border-slate-200'
               }`}>
                 <Calculator className={`w-6 h-6 ${isDarkMode ? 'text-white' : 'text-primary'}`} />
-                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Price Calculator</h2>
+                <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Cost-Plus Pricing Calculator</h2>
               </div>
 
               <form className="space-y-6" onSubmit={(e) => { e.preventDefault(); calculatePrice(); }}>
@@ -329,7 +316,7 @@ function App() {
                     name="productName"
                     value={formData.productName}
                     onChange={handleInputChange}
-                    placeholder="Enter product name"
+                    placeholder="e.g., Cookie"
                     required
                     className={`w-full px-4 py-3 ${
                       isDarkMode 
@@ -339,174 +326,126 @@ function App() {
                   />
                 </div>
 
-                {/* Cost Inputs Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="materialCost" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Material Cost
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>₱</span>
-                      <input
-                        type="number"
-                        id="materialCost"
-                        name="materialCost"
-                        value={formData.materialCost}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
+                {/* Step 1: Fixed Costs */}
+                <div>
+                  <label htmlFor="fixedCosts" className={`block text-sm font-semibold ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  } mb-2 uppercase tracking-wide`}>
+                    Step 1: Total Fixed Costs
+                  </label>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
+                    Costs that stay the same (Rent, Utilities, Equipment Depreciation)
+                  </p>
+                  <div className="relative">
+                    <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                    } font-mono font-semibold`}>₱</span>
+                    <input
+                      type="number"
+                      id="fixedCosts"
+                      name="fixedCosts"
+                      value={formData.fixedCosts}
+                      onChange={handleInputChange}
+                      placeholder="11000"
+                      step="0.01"
+                      required
+                      className={`w-full pl-8 pr-4 py-3 ${
+                        isDarkMode 
+                          ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
+                          : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+                      } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
+                    />
                   </div>
+                </div>
 
-                  <div>
-                    <label htmlFor="laborCost" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Labor Cost
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>₱</span>
-                      <input
-                        type="number"
-                        id="laborCost"
-                        name="laborCost"
-                        value={formData.laborCost}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
+                {/* Step 2: Variable Cost Per Unit */}
+                <div>
+                  <label htmlFor="variableCostPerUnit" className={`block text-sm font-semibold ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  } mb-2 uppercase tracking-wide`}>
+                    Step 2: Variable Cost Per Unit
+                  </label>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
+                    Cost for materials, packaging, and labor per unit
+                  </p>
+                  <div className="relative">
+                    <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                    } font-mono font-semibold`}>₱</span>
+                    <input
+                      type="number"
+                      id="variableCostPerUnit"
+                      name="variableCostPerUnit"
+                      value={formData.variableCostPerUnit}
+                      onChange={handleInputChange}
+                      placeholder="35"
+                      step="0.01"
+                      required
+                      className={`w-full pl-8 pr-4 py-3 ${
+                        isDarkMode 
+                          ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
+                          : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+                      } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
+                    />
                   </div>
+                </div>
 
-                  <div>
-                    <label htmlFor="overheadExpenses" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Overhead
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>₱</span>
-                      <input
-                        type="number"
-                        id="overheadExpenses"
-                        name="overheadExpenses"
-                        value={formData.overheadExpenses}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
-                  </div>
+                {/* Step 3: Units Produced */}
+                <div>
+                  <label htmlFor="unitsProduced" className={`block text-sm font-semibold ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  } mb-2 uppercase tracking-wide`}>
+                    Step 3: Units Produced
+                  </label>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
+                    How many units will be produced?
+                  </p>
+                  <input
+                    type="number"
+                    id="unitsProduced"
+                    name="unitsProduced"
+                    value={formData.unitsProduced}
+                    onChange={handleInputChange}
+                    placeholder="700"
+                    step="1"
+                    required
+                    className={`w-full px-4 py-3 ${
+                      isDarkMode 
+                        ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
+                        : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+                    } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
+                  />
+                </div>
 
-                  <div>
-                    <label htmlFor="profitPercentage" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Profit Margin
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>%</span>
-                      <input
-                        type="number"
-                        id="profitPercentage"
-                        name="profitPercentage"
-                        value={formData.profitPercentage}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="discountPercentage" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Discount
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>%</span>
-                      <input
-                        type="number"
-                        id="discountPercentage"
-                        name="discountPercentage"
-                        value={formData.discountPercentage}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label htmlFor="taxPercentage" className={`block text-sm font-semibold ${
-                      isDarkMode ? 'text-slate-300' : 'text-slate-700'
-                    } mb-2 uppercase tracking-wide`}>
-                      Tax Rate
-                    </label>
-                    <div className="relative">
-                      <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
-                        isDarkMode ? 'text-slate-400' : 'text-slate-500'
-                      } font-mono font-semibold`}>%</span>
-                      <input
-                        type="number"
-                        id="taxPercentage"
-                        name="taxPercentage"
-                        value={formData.taxPercentage}
-                        onChange={handleInputChange}
-                        placeholder="0.00"
-                        step="0.01"
-                        required
-                        className={`w-full pl-8 pr-4 py-3 ${
-                          isDarkMode 
-                            ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
-                            : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
-                        } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
-                      />
-                    </div>
+                {/* Step 6: Markup Percentage */}
+                <div>
+                  <label htmlFor="markupPercentage" className={`block text-sm font-semibold ${
+                    isDarkMode ? 'text-slate-300' : 'text-slate-700'
+                  } mb-2 uppercase tracking-wide`}>
+                    Step 6: Markup Percentage
+                  </label>
+                  <p className={`text-xs ${isDarkMode ? 'text-slate-400' : 'text-slate-500'} mb-2`}>
+                    Recommended: 25%-50%
+                  </p>
+                  <div className="relative">
+                    <span className={`absolute left-4 top-1/2 -translate-y-1/2 ${
+                      isDarkMode ? 'text-slate-400' : 'text-slate-500'
+                    } font-mono font-semibold`}>%</span>
+                    <input
+                      type="number"
+                      id="markupPercentage"
+                      name="markupPercentage"
+                      value={formData.markupPercentage}
+                      onChange={handleInputChange}
+                      placeholder="50"
+                      step="0.01"
+                      required
+                      className={`w-full pl-8 pr-4 py-3 ${
+                        isDarkMode 
+                          ? 'bg-dark-bg border-dark-border text-slate-100 placeholder-slate-500' 
+                          : 'bg-white border-slate-300 text-slate-900 placeholder-slate-400'
+                      } border-2 rounded-xl focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/20 transition-all duration-200 font-mono`}
+                    />
                   </div>
                 </div>
 
@@ -528,51 +467,47 @@ function App() {
                     } border rounded-xl p-4`}>
                       <p className={`text-xs font-semibold ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      } uppercase tracking-wider mb-1`}>Base Cost</p>
+                      } uppercase tracking-wider mb-1`}>Fixed Cost Per Unit</p>
                       <p className={`text-xl font-bold ${
                         isDarkMode ? 'text-slate-100' : 'text-slate-900'
-                      } font-mono`}>${currentCalculation.baseCost.toFixed(2)}</p>
+                      } font-mono`}>₱{currentCalculation.fixedCostPerUnit}</p>
                     </div>
                     <div className={`${
                       isDarkMode ? 'bg-dark-bg border-dark-border' : 'bg-slate-50 border-slate-200'
                     } border rounded-xl p-4`}>
                       <p className={`text-xs font-semibold ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      } uppercase tracking-wider mb-1`}>With Profit ({currentCalculation.profitPercentage}%)</p>
+                      } uppercase tracking-wider mb-1`}>Cost Per Unit</p>
                       <p className={`text-xl font-bold ${
                         isDarkMode ? 'text-slate-100' : 'text-slate-900'
-                      } font-mono`}>${currentCalculation.withProfit.toFixed(2)}</p>
+                      } font-mono`}>₱{currentCalculation.costPerUnit}</p>
                     </div>
                     <div className={`${
                       isDarkMode ? 'bg-dark-bg border-dark-border' : 'bg-slate-50 border-slate-200'
                     } border rounded-xl p-4`}>
                       <p className={`text-xs font-semibold ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      } uppercase tracking-wider mb-1`}>After Discount ({currentCalculation.discountPercentage}%)</p>
+                      } uppercase tracking-wider mb-1`}>Markup ({currentCalculation.markupPercentage}%)</p>
                       <p className={`text-xl font-bold ${
                         isDarkMode ? 'text-slate-100' : 'text-slate-900'
-                      } font-mono`}>${currentCalculation.afterDiscount.toFixed(2)}</p>
+                      } font-mono`}>₱{currentCalculation.profitPerUnit}</p>
                     </div>
                     <div className={`${
                       isDarkMode ? 'bg-dark-bg border-dark-border' : 'bg-slate-50 border-slate-200'
                     } border rounded-xl p-4`}>
                       <p className={`text-xs font-semibold ${
                         isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                      } uppercase tracking-wider mb-1`}>Tax ({currentCalculation.taxPercentage}%)</p>
+                      } uppercase tracking-wider mb-1`}>Profit Per Unit</p>
                       <p className={`text-xl font-bold ${
                         isDarkMode ? 'text-slate-100' : 'text-slate-900'
-                      } font-mono`}>${currentCalculation.taxAmount.toFixed(2)}</p>
+                      } font-mono`}>₱{currentCalculation.profitPerUnit}</p>
                     </div>
                   </div>
 
-                  <div className={`rounded-2xl p-6 shadow-xl animate-pulse-glow ${
-                    isDarkMode
-                      ? 'bg-gradient-to-br from-primary to-primary-dark'
-                      : 'bg-gradient-to-br from-emerald-500 to-emerald-600'
-                  }`}>
+                  <div className={`rounded-2xl p-6 shadow-xl animate-pulse-glow bg-gradient-to-br from-emerald-500 to-emerald-600`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-white/90 font-semibold uppercase tracking-widest text-sm">Total Price</span>
-                      <span className="text-4xl font-bold text-white font-mono">${currentCalculation.totalPrice.toFixed(2)}</span>
+                      <span className="text-white/90 font-semibold uppercase tracking-widest text-sm">Selling Price</span>
+                      <span className="text-4xl font-bold text-white font-mono">₱{currentCalculation.sellingPrice}</span>
                     </div>
                   </div>
 
@@ -580,7 +515,7 @@ function App() {
                     onClick={saveCalculation}
                     className={`w-full font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg transition-all duration-300 hover:-translate-y-1 uppercase tracking-wide text-sm ${
                       isDarkMode
-                        ? 'bg-gradient-to-r from-secondary to-secondary-dark hover:from-secondary-dark hover:to-secondary text-white shadow-secondary/30 hover:shadow-secondary/50'
+                        ? 'bg-gradient-to-r from-blue-500 to-blue-600  hover:from-blue-600 hover:to-blue-700 text-white shadow-secondary/30 hover:shadow-secondary/50'
                         : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white shadow-blue-500/30 hover:shadow-blue-500/50'
                     }`}
                   >
@@ -617,7 +552,7 @@ function App() {
                   isDarkMode ? 'border-dark-border text-white' : 'border-slate-200'
                 }`}>
                   <History className={`w-6 h-6 ${isDarkMode ? 'text-primary' : 'text-primary'}`} />
-                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>  Calculation History</h2>
+                  <h2 className={`text-2xl font-bold ${isDarkMode ? 'text-slate-100' : 'text-slate-900'}`}>Calculation History</h2>
                 </div>
               </div>
 
@@ -660,11 +595,11 @@ function App() {
                     >
                       <div className="flex items-start justify-between mb-4">
                         <div>
-                          <h3 className={`${isDarkMode? 'text-white' : 'text-black'} text-lg font-bold group-hover:text-primary-light transition-colors`}>
+                          <h3 className={`${isDarkMode ? 'text-white' : 'text-black'} text-lg font-bold group-hover:text-primary-light transition-colors`}>
                             {calc.productName}
                           </h3>
                           <p className={`text-xs ${
-                            isDarkMode ? 'text-slate-500 ' : 'text-slate-400'
+                            isDarkMode ? 'text-slate-500' : 'text-slate-400'
                           } font-mono mt-1`}>
                             {new Date(calc.timestamp).toLocaleString()}
                           </p>
@@ -684,20 +619,28 @@ function App() {
 
                       <div className="grid grid-cols-2 gap-3 mb-4 text-sm">
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Material:</span>
-                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>${calc.materialCost.toFixed(2)}</span>
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Fixed Costs:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>₱{calc.fixedCosts.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Labor:</span>
-                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>${calc.laborCost.toFixed(2)}</span>
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Variable/Unit:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>₱{calc.variableCostPerUnit.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Overhead:</span>
-                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>${calc.overheadExpenses.toFixed(2)}</span>
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Units:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>{calc.unitsProduced}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Profit:</span>
-                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>{calc.profitPercentage}%</span>
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Markup:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>{calc.markupPercentage}%</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Cost/Unit:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>₱{calc.costPerUnit}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className={isDarkMode ? 'text-slate-400' : 'text-slate-600'}>Profit/Unit:</span>
+                          <span className={`${isDarkMode ? 'text-slate-200' : 'text-slate-900'} font-mono`}>₱{calc.profitPerUnit}</span>
                         </div>
                       </div>
 
@@ -706,8 +649,8 @@ function App() {
                       } flex justify-between items-center`}>
                         <span className={`${
                           isDarkMode ? 'text-slate-400' : 'text-slate-600'
-                        } font-semibold`}>Total Price</span>
-                        <span className="text-2xl font-bold text-primary font-mono">${calc.totalPrice.toFixed(2)}</span>
+                        } font-semibold`}>Selling Price</span>
+                        <span className="text-2xl font-bold text-primary font-mono">₱{calc.sellingPrice}</span>
                       </div>
                     </div>
                   ))
