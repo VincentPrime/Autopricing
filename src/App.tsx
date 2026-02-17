@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Calculator, History, Trash2, Download, TrendingUp, Moon, Sun, ArrowLeft, BookOpen, Phone, Home } from 'lucide-react';
+import { Calculator, History, Trash2, Download, TrendingUp, Moon, Sun, BookOpen, Phone, Home } from 'lucide-react';
 import jsPDF from 'jspdf';
 
 interface Calculation {
