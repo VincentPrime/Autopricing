@@ -254,7 +254,7 @@ function App() {
         <header className="text-center mb-12 animate-fade-in">
           <div className="inline-flex items-center justify-center relative">
             <img
-              src="/Pricinglogo.png"
+              src="/autopri.png"
               alt="autopricing"
               className="w-30 h-30 rounded-2xl border border-white/60 shadow-lg shadow-primary/50"
             />
