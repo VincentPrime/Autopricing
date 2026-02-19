@@ -128,7 +128,7 @@ function App() {
 
     doc.setFontSize(22);
     doc.setTextColor(0, 51, 102); // Navy blue
-    doc.text('AutoPricing System', 105, 20, { align: 'center' });
+    doc.text('AutoPrice System', 105, 20, { align: 'center' });
 
     doc.setFontSize(16);
     doc.setTextColor(0, 0, 0);
@@ -349,14 +349,14 @@ function App() {
           <div className="inline-flex items-center justify-center relative">
             <img
               src="/autopri.png"
-              alt="autopricing"
+              alt="autoprice"
               className={`w-30 h-30 rounded-2xl border-2 shadow-lg ${
                 isDarkMode ? 'border-[#FFD700]/60 shadow-[#FFD700]/30' : 'border-white/60 shadow-primary/30'
               }`}
             />
           </div>
           <p className={`${isDarkMode ? 'text-[#FFD700]' : 'text-[#003366]'} text-2xl font-bold mt-2`}>
-            AutoPricing
+            AutoPrice
           </p>
           <p className={`${isDarkMode ? 'text-slate-400' : 'text-slate-600'} text-sm`}>
             Fast Pricing, Zero Hassle!
