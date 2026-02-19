@@ -72,7 +72,7 @@ function App() {
   };
 
   const loadHistory = () => {
-    const savedHistory = localStorage.getItem('pricingHistory');
+    const savedHistory = localStorage.getItem('PricingHistory');
     if (savedHistory) {
       setHistory(JSON.parse(savedHistory));
     }
